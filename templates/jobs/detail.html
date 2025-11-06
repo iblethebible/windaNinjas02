@@ -34,6 +34,14 @@
         <p class="text-muted">Job Details</p>
     </div>
     <div class="col-md-6 text-end">
+        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#completeJobModal">
+            <i class="bi bi-check-circle me-2"></i>Mark as Complete
+        </button>
+        {% if not job.customer %}
+        <a href="{{ url_for('add_customer_to_job', id=job.idjob) }}" class="btn me-2" style="background-color: #ff6600; border-color: #ff6600; color: white;">
+            <i class="bi bi-person-plus me-2"></i>Add Customer Info
+        </a>
+        {% endif %}
         <a href="{{ url_for('edit_job', id=job.idjob) }}" class="btn btn-outline-primary me-2">
             <i class="bi bi-pencil me-2"></i>Edit Job
         </a>
@@ -186,13 +194,14 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <strong>Job ID:</strong><br>
-                    {{ job.idjob }}
-                </div>
-                <hr>
-                <div class="mb-3">
-                    <strong>Zone ID:</strong><br>
-                    {{ job.zone_id or '-' }}
+                    <strong>Zone:</strong><br>
+                    {% if zone %}
+                        {{ zone.name }}
+                    {% elif job.zone_id %}
+                        Zone ID: {{ job.zone_id }}
+                    {% else %}
+                        -
+                    {% endif %}
                 </div>
                 <hr>
                 <div class="mb-3">
@@ -200,6 +209,101 @@
                     {{ job.payment_type_id or '-' }}
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job History Section -->
+{% if job_history %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Completion History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date Completed</th>
+                                <th>Payment Status</th>
+                                <th>Payment Type ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for history in job_history %}
+                            <tr>
+                                <td>
+                                    {% if history.timestamp %}
+                                        {{ history.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if history.paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ history.payment_type_id or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Complete Job Modal -->
+<div class="modal fade" id="completeJobModal" tabindex="-1" aria-labelledby="completeJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeJobModalLabel">
+                    <i class="bi bi-check-circle me-2"></i>Mark Job as Complete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('complete_job', id=job.idjob) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Payment Status</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="paid" id="paidYes" value="true" checked>
+                            <label class="form-check-label" for="paidYes">
+                                Paid
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="paid" id="paidNo" value="false">
+                            <label class="form-check-label" for="paidNo">
+                                Unpaid
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_type_id" class="form-label">Payment Type ID (optional)</label>
+                        <input type="number" class="form-control" id="payment_type_id" name="payment_type_id" 
+                               value="{{ job.payment_type_id or '' }}">
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This will update the "Last Done" date to today and calculate the next due date based on the job frequency.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-2"></i>Mark as Complete
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

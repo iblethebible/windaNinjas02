@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-0"><i class="bi bi-graph-up me-2"></i>Statistics</h1>
+        <p class="text-muted">Analytics and insights for your business</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-number">{{ stats.total_customers }}</div>
+            <div class="mt-2">
+                <i class="bi bi-people-fill text-primary"></i>
+                <span class="text-muted ms-2">Registered</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Jobs</div>
+            <div class="stat-number">{{ stats.total_jobs }}</div>
+            <div class="mt-2">
+                <i class="bi bi-briefcase text-primary"></i>
+                <span class="text-muted ms-2">Active jobs</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Theoretical Earnings</div>
+            <div class="stat-number">£{{ "%.2f"|format(stats.theoretical_earnings) }}</div>
+            <div class="mt-2">
+                <i class="bi bi-currency-pound text-primary"></i>
+                <span class="text-muted ms-2">Potential revenue</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Actual Earnings</div>
+            <div class="stat-number">£{{ "%.2f"|format(stats.actual_earnings) }}</div>
+            <div class="mt-2">
+                <i class="bi bi-cash-coin text-primary"></i>
+                <span class="text-muted ms-2">Paid revenue</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Zone Revenue vs Job Count</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="zoneRevenueChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Zone Distribution of Jobs</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="zoneDistributionChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Weekly Earnings: Made vs Collected</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyEarningsChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Zone Revenue vs Job Count Bar Chart
+    const zoneRevenueCtx = document.getElementById('zoneRevenueChart').getContext('2d');
+    const zoneStats = {{ stats.zone_stats|tojson }};
+    const zoneLabels = zoneStats.map(z => z.zone_name);
+    const zoneRevenues = zoneStats.map(z => z.revenue);
+    const zoneJobCounts = zoneStats.map(z => z.job_count);
+    
+    new Chart(zoneRevenueCtx, {
+        type: 'bar',
+        data: {
+            labels: zoneLabels,
+            datasets: [
+                {
+                    label: 'Revenue (£)',
+                    data: zoneRevenues,
+                    backgroundColor: '#4f46e5',
+                    borderRadius: 8,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Job Count',
+                    data: zoneJobCounts,
+                    backgroundColor: '#10b981',
+                    borderRadius: 8,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '£' + value.toLocaleString();
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Revenue (£)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Job Count'
+                    }
+                }
+            }
+        }
+    });
+
+    // Zone Distribution Pie Chart
+    const zoneDistributionCtx = document.getElementById('zoneDistributionChart').getContext('2d');
+    const zoneDistribution = {{ stats.zone_distribution|tojson }};
+    const zoneDistLabels = zoneDistribution.map(z => z.zone_name);
+    const zoneDistCounts = zoneDistribution.map(z => z.job_count);
+    
+    // Generate colors for pie chart
+    const colors = [
+        '#4f46e5', '#7c3aed', '#a855f7', '#c084fc',
+        '#e879f9', '#f0abfc', '#f9a8d4', '#fda4af',
+        '#fb7185', '#f87171', '#ef4444', '#dc2626'
+    ];
+    
+    new Chart(zoneDistributionCtx, {
+        type: 'pie',
+        data: {
+            labels: zoneDistLabels,
+            datasets: [{
+                data: zoneDistCounts,
+                backgroundColor: colors.slice(0, zoneDistLabels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Weekly Earnings Bar Chart (Theoretical vs Actual)
+    const weeklyEarningsCtx = document.getElementById('weeklyEarningsChart').getContext('2d');
+    const weeklyEarnings = {{ stats.weekly_earnings|tojson }};
+    const weekLabels = weeklyEarnings.map(w => {
+        const date = new Date(w.week);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    });
+    const theoreticalWeekly = weeklyEarnings.map(w => w.theoretical);
+    const actualWeekly = weeklyEarnings.map(w => w.actual);
+    
+    new Chart(weeklyEarningsCtx, {
+        type: 'bar',
+        data: {
+            labels: weekLabels,
+            datasets: [
+                {
+                    label: 'Made (£)',
+                    data: theoreticalWeekly,
+                    backgroundColor: '#7c3aed',
+                    borderRadius: 8
+                },
+                {
+                    label: 'Collected (£)',
+                    data: actualWeekly,
+                    backgroundColor: '#10b981',
+                    borderRadius: 8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '£' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

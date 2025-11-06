@@ -6,28 +6,28 @@
 <div class="row mb-4">
     <div class="col-12">
         <h1 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
-        <p class="text-muted">Overview of your customer management system</p>
+        <p class="text-muted">Job management system</p>
     </div>
 </div>
 
 <div class="row mb-4">
     <div class="col-md-4 mb-3">
         <div class="stat-card">
-            <div class="stat-label">Total Customers</div>
-            <div class="stat-number">{{ total_customers }}</div>
+            <div class="stat-label">Due Jobs</div>
+            <div class="stat-number">{{ due_jobs_count }}</div>
             <div class="mt-2">
-                <i class="bi bi-people-fill text-primary"></i>
-                <span class="text-muted ms-2">Registered customers</span>
+                <i class="bi bi-calendar-x text-primary"></i>
+                <span class="text-muted ms-2">Require attention</span>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="stat-card">
-            <div class="stat-label">Recent Activity</div>
-            <div class="stat-number">{{ recent_customers|length }}</div>
+            <div class="stat-label">Unpaid Earnings</div>
+            <div class="stat-number">£{{ "%.2f"|format(unpaid_earnings) }}</div>
             <div class="mt-2">
-                <i class="bi bi-clock-history text-primary"></i>
-                <span class="text-muted ms-2">Recent additions</span>
+                <i class="bi bi-exclamation-triangle text-primary"></i>
+                <span class="text-muted ms-2">Outstanding</span>
             </div>
         </div>
     </div>
@@ -38,7 +38,7 @@
                 <a href="{{ url_for('add_customer') }}" class="btn btn-primary w-100 mb-2">
                     <i class="bi bi-person-plus me-2"></i>Add New Customer
                 </a>
-                <a href="{{ url_for('customers') }}" class="btn btn-outline-primary w-100">
+                <a href="{{ url_for('add_job') }}" class="btn btn-outline-primary w-100">
                     <i class="bi bi-briefcase me-2"></i>Add New Job
                 </a>
             </div>
@@ -50,30 +50,102 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Customers</h5>
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Jobs by Due Date</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="zoneFilter" class="form-select">
+                            <option value="all">All Jobs</option>
+                            {% for zone in zones %}
+                            <option value="{{ zone.idzone }}">{{ zone.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
-                {% if recent_customers %}
+                {% if jobs_by_due %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="dueJobsTable">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Telephone</th>
+                                <th>Job</th>
+                                <th>Customer</th>
+                                <th>Zone</th>
+                                <th>Price</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for customer in recent_customers %}
-                            <tr style="cursor: pointer;" data-href="{{ url_for('customer_detail', id=customer.idcustomer) }}">
+                            {% for item in jobs_by_due %}
+                            {% set job = item.job %}
+                            {% set days_overdue = item.days_overdue %}
+                            <tr style="cursor: pointer;" data-href="{{ url_for('job_detail', id=job.idjob) }}" 
+                                data-zone="{% if job.zone_id %}{{ job.zone_id }}{% endif %}">
                                 <td>
-                                    <strong>{{ customer.forename or '' }} {{ customer.surname or '' }}</strong>
+                                    {% if job.address %}
+                                        {% if job.address.house_num_name and job.address.street_name %}
+                                            {{ job.address.house_num_name }} {{ job.address.street_name }}
+                                        {% elif job.address.postcode %}
+                                            {{ job.address.postcode }}
+                                        {% else %}
+                                            Job #{{ job.idjob }}
+                                        {% endif %}
+                                    {% else %}
+                                        Job #{{ job.idjob }}
+                                    {% endif %}
                                 </td>
-                                <td>{{ customer.email or '-' }}</td>
-                                <td>{{ customer.telephone or '-' }}</td>
+                                <td>
+                                    {% if job.customer %}
+                                        <a href="{{ url_for('customer_detail', id=job.customer_id) }}" onclick="event.stopPropagation();">
+                                            {{ job.customer.forename or '' }} {{ job.customer.surname or '' }}
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.zone_id %}
+                                        {% set zone_obj = zones|selectattr('idzone', 'equalto', job.zone_id)|first %}
+                                        {% if zone_obj %}
+                                            {{ zone_obj.name }}
+                                        {% else %}
+                                            Zone ID: {{ job.zone_id }}
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.price %}
+                                        <span class="text-success fw-bold">£{{ "%.2f"|format(job.price) }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.date_next_due %}
+                                        {{ job.date_next_due.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if days_overdue == "No due date set" %}
+                                        <span class="badge bg-warning">Due</span>
+                                    {% elif days_overdue > 0 %}
+                                        <span class="badge bg-danger">Overdue ({{ days_overdue }}d)</span>
+                                    {% elif days_overdue == 0 %}
+                                        <span class="badge bg-warning">Due Today</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Due in {{ -days_overdue }}d</span>
+                                    {% endif %}
+                                </td>
                                 <td onclick="event.stopPropagation();">
-                                    <a href="{{ url_for('customer_detail', id=customer.idcustomer) }}" 
+                                    <a href="{{ url_for('job_detail', id=job.idjob) }}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
@@ -83,18 +155,10 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('customers') }}" class="btn btn-primary">
-                        View All Customers <i class="bi bi-arrow-right ms-2"></i>
-                    </a>
-                </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
-                    <p class="text-muted mt-3">No customers yet. Add your first customer to get started!</p>
-                    <a href="{{ url_for('add_customer') }}" class="btn btn-primary mt-2">
-                        <i class="bi bi-person-plus me-2"></i>Add Customer
-                    </a>
+                    <i class="bi bi-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                    <p class="text-muted mt-3">No jobs found.</p>
                 </div>
                 {% endif %}
             </div>
@@ -105,8 +169,23 @@
 
 {% block extra_js %}
 <script>
+    // Zone filter functionality
+    document.getElementById('zoneFilter').addEventListener('change', function() {
+        const selectedZone = this.value;
+        const rows = document.querySelectorAll('#dueJobsTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowZone = row.dataset.zone || '';
+            if (selectedZone === 'all' || rowZone === selectedZone) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
     // Make rows clickable
-    document.querySelectorAll('table tbody tr[data-href]').forEach(row => {
+    document.querySelectorAll('#dueJobsTable tbody tr[data-href]').forEach(row => {
         row.addEventListener('click', function(e) {
             // Don't navigate if clicking on action buttons
             if (!e.target.closest('td:last-child')) {

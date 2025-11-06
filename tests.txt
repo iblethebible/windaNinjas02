@@ -1,0 +1,189 @@
+Test customer creation with valid data
+Create customer with all required fields
+Verify customer is saved to database
+Verify redirect to customer detail page
+Test customer creation with phone number validation
+Reject phone numbers with spaces
+Reject phone numbers with non-numeric characters
+Accept valid numeric phone numbers
+Test customer update functionality
+Update customer details
+Verify changes are persisted
+Test phone number validation on update
+Test customer deletion
+Delete customer and verify removal
+Test deletion of customer with associated jobs (cascade behavior)
+Test customer list display
+Verify all customers are displayed
+Verify total count is correct
+Test customer search/filter functionality
+Test customer detail page
+Display all customer information
+Display associated jobs
+Test "Add Job" functionality from customer detail
+Test invoice address management
+Add invoice address for customer
+Update existing invoice address
+Verify address reuse logic
+Job Management Tests
+Test job creation without customer
+Create job with address but no customer
+Verify job is saved correctly
+Verify "Add Customer Info" button appears
+Test job creation with customer
+Create job linked to existing customer
+Verify relationship is established
+Test job creation with address reuse
+Create job with existing address
+Verify address is reused (not duplicated)
+Test job frequency conversion
+Input frequency in weeks
+Verify conversion to days (weeks * 7) in database
+Test job update functionality
+Update job details
+Change customer assignment
+Update zone assignment
+Test job deletion
+Delete job and verify removal
+Test deletion of job with history entries
+Test job completion workflow
+Mark job as complete with payment
+Mark job as complete without payment
+Verify dateLastDone is updated
+Verify date_next_due is calculated correctly (frequency * 7 days)
+Verify JobHistory entry is created
+Test job detail page display
+Display job information correctly
+Display zone name (not just ID)
+Display completion history
+Show "Add Customer Info" button when no customer
+Test adding customer to existing job
+Add customer to job without customer
+Update customer for existing job
+Verify redirect after adding customer
+Zone Management Tests
+Test zone creation
+Create zone with name and number
+Create zone with name only
+Verify unique zone number constraint
+Test zone deletion
+Delete zone
+Test deletion of zone used by jobs (cascade behavior)
+Test zone dropdown in job forms
+Verify zones appear in dropdown
+Verify zone selection saves correctly
+Test "No Zone" option
+Dashboard Tests
+Test dashboard statistics calculation
+Verify due jobs count is accurate
+Verify unpaid earnings calculation (theoretical - actual)
+Test with empty database
+Test jobs by due date ordering
+Jobs with no date appear first
+Jobs ordered by due date ascending
+Verify overdue calculation
+Test zone filter on dashboard
+Filter jobs by zone
+Test "All Jobs" option
+Verify filter works correctly
+Stats Page Tests
+Test theoretical vs actual earnings calculation
+Verify theoretical earnings (sum of all job prices)
+Verify actual earnings (sum of paid job history)
+Test with no job history
+Test earnings charts
+Verify bar chart displays correctly
+Verify line chart for earnings over time
+Test with empty data
+Test customer growth chart
+Verify customer creation over time chart
+Test with no customers
+Test frequency distribution chart
+Verify job frequency categories are correct
+Test edge cases (null frequency, various ranges)
+Due Jobs Tests
+Test due jobs list
+Display all due/overdue jobs
+Verify days overdue calculation
+Test jobs with no due date
+Test due jobs ordering
+Verify correct ordering (no date first, then by date)
+API Tests
+Test /api/customers endpoint
+Verify JSON response format
+Verify all customers are returned
+Test response structure matches to_dict() method
+Validation & Error Handling Tests
+Test form validation
+Required fields validation
+Phone number format validation
+Email format validation (if implemented)
+Test database error handling
+Test behavior when database connection fails
+Test rollback on transaction errors
+Test 404 error handling
+Access non-existent customer
+Access non-existent job
+Access non-existent zone
+Test invalid form data
+Submit invalid phone numbers
+Submit invalid price values
+Submit invalid frequency values
+Integration Tests
+Test complete workflow: Create customer → Add job → Complete job
+End-to-end workflow test
+Verify all relationships are maintained
+Test address reuse across multiple jobs
+Create multiple jobs with same address
+Verify address is not duplicated
+Test customer-to-job linking workflow
+Create job without customer
+Add customer to job
+Verify relationship is established
+UI/UX Tests
+Test responsive design
+Test on mobile devices
+Test on tablets
+Test on desktop
+Test navigation
+All navigation links work correctly
+Breadcrumbs/navigation flow is logical
+Test flash messages
+Success messages appear
+Error messages appear
+Messages clear appropriately
+Edge Cases
+Test empty database scenarios
+Dashboard with no data
+Customer list with no customers
+Job list with no jobs
+Test large data sets
+Performance with many customers
+Performance with many jobs
+Pagination (if implemented)
+Test special characters in input
+Names with special characters
+Addresses with special characters
+SQL injection attempts
+Test date edge cases
+Jobs due today
+Jobs with past due dates
+Jobs with future due dates
+Jobs with null dates
+Security Tests
+Test input sanitization
+XSS prevention in user input
+SQL injection prevention
+Test authentication/authorization (if implemented)
+Access control for admin routes
+Session management
+Data Integrity Tests
+Test foreign key constraints
+Cannot delete customer with jobs
+Cannot delete zone used by jobs
+Cannot delete address used by jobs
+Test data consistency
+Customer count matches database
+Job count matches database
+Earnings calculations match database state
+These can be organized into GitHub issues by priority or feature area.

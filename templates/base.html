@@ -136,6 +136,26 @@
                             <i class="bi bi-briefcase me-1"></i>Jobs
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('jobs_due') }}">
+                            <i class="bi bi-calendar-x me-1"></i>Due Jobs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('unpaid_jobs') }}">
+                            <i class="bi bi-cash-coin me-1"></i>Unpaid
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('stats') }}">
+                            <i class="bi bi-graph-up me-1"></i>Stats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_settings') }}">
+                            <i class="bi bi-gear me-1"></i>Admin
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

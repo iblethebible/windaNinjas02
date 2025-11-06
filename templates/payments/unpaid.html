@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Unpaid Jobs - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Unpaid Jobs</h1>
+        <p class="text-muted">Jobs that have been completed but not yet paid</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>Unpaid Jobs
+                    <span class="badge bg-warning ms-2">{{ unpaid_jobs|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if unpaid_jobs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Price</th>
+                                <th>Job Completed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in unpaid_jobs %}
+                            <tr>
+                                <td>
+                                    {% if item.job.customer %}
+                                        <a href="{{ url_for('customer_detail', id=item.job.customer_id) }}">
+                                            {{ item.customer_name }}
+                                        </a>
+                                    {% else %}
+                                        {{ item.customer_name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">£{{ "%.2f"|format(item.price) }}</span>
+                                </td>
+                                <td>
+                                    {% if item.completion_time %}
+                                        {{ item.completion_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('mark_job_paid', history_id=item.history_id) }}" 
+                                          class="d-inline" onsubmit="return confirm('Mark this job as paid?');">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-circle me-1"></i>Mark as Paid
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('job_detail', id=item.job_id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="bi bi-eye"></i>View Job
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <th>Total</th>
+                                <th>
+                                    <span class="text-success fw-bold">
+                                        £{{ "%.2f"|format(unpaid_jobs|map(attribute='price')|sum) }}
+                                    </span>
+                                </th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                    <p class="text-muted mt-3">No unpaid jobs! All completed jobs have been paid.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -154,8 +154,13 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="zone_id" class="form-label">Zone ID</label>
-                            <input type="number" class="form-control" id="zone_id" name="zone_id">
+                            <label for="zone_id" class="form-label">Zone</label>
+                            <select class="form-select" id="zone_id" name="zone_id">
+                                <option value="">No Zone</option>
+                                {% for zone in zones %}
+                                <option value="{{ zone.idzone }}">{{ zone.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label for="payment_type_id" class="form-label">Payment Type ID</label>
