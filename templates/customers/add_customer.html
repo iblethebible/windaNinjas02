@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Add Customer - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Add New Customer</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_customer') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="forename" class="form-label">Forename <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="forename" name="forename" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="surname" class="form-label">Surname <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="surname" name="surname" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telephone" class="form-label">Telephone</label>
+                            <input type="tel" class="form-control" id="telephone" name="telephone" 
+                                   pattern="[0-9]+" title="Phone number should contain only digits (no spaces)">
+                            <small class="text-muted">Numbers only, no spaces</small>
+                        </div>
+                    </div>                   
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('customers') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>Add Customer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

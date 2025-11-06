@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+        <p class="text-muted">Overview of your customer management system</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-number">{{ total_customers }}</div>
+            <div class="mt-2">
+                <i class="bi bi-people-fill text-primary"></i>
+                <span class="text-muted ms-2">Registered customers</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Recent Activity</div>
+            <div class="stat-number">{{ recent_customers|length }}</div>
+            <div class="mt-2">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span class="text-muted ms-2">Recent additions</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card">
+            <div class="stat-label">Quick Actions</div>
+            <div class="mt-3">
+                <a href="{{ url_for('add_customer') }}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-person-plus me-2"></i>Add New Customer
+                </a>
+                <a href="{{ url_for('customers') }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-briefcase me-2"></i>Add New Job
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Customers</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_customers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Telephone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in recent_customers %}
+                            <tr style="cursor: pointer;" data-href="{{ url_for('customer_detail', id=customer.idcustomer) }}">
+                                <td>
+                                    <strong>{{ customer.forename or '' }} {{ customer.surname or '' }}</strong>
+                                </td>
+                                <td>{{ customer.email or '-' }}</td>
+                                <td>{{ customer.telephone or '-' }}</td>
+                                <td onclick="event.stopPropagation();">
+                                    <a href="{{ url_for('customer_detail', id=customer.idcustomer) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('customers') }}" class="btn btn-primary">
+                        View All Customers <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
+                    <p class="text-muted mt-3">No customers yet. Add your first customer to get started!</p>
+                    <a href="{{ url_for('add_customer') }}" class="btn btn-primary mt-2">
+                        <i class="bi bi-person-plus me-2"></i>Add Customer
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Make rows clickable
+    document.querySelectorAll('table tbody tr[data-href]').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't navigate if clicking on action buttons
+            if (!e.target.closest('td:last-child')) {
+                window.location.href = this.dataset.href;
+            }
+        });
+    });
+</script>
+{% endblock %}
+

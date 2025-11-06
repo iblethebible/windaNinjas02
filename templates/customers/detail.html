@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}{{ customer.forename }} {{ customer.surname }} - Customer Details{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="mb-0">
+            <i class="bi bi-person-circle me-2"></i>{{ customer.forename or '' }} {{ customer.surname or '' }}
+        </h1>
+        <p class="text-muted">Customer Details</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('edit_customer', id=customer.idcustomer) }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-pencil me-2"></i>Edit Customer
+        </a>
+        <a href="{{ url_for('customers') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Customers
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Forename:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ customer.forename or '-' }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Surname:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ customer.surname or '-' }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Email:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if customer.email %}
+                            <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Telephone:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if customer.telephone %}
+                            <a href="tel:{{ customer.telephone }}">{{ customer.telephone }}</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Created:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if customer.timestamp %}
+                            {{ customer.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-briefcase me-2"></i>Jobs</h5>
+            </div>
+            <div class="card-body">
+                {% if jobs %}
+                <div class="list-group">
+                    {% for job in jobs %}
+                    <a href="{{ url_for('job_detail', id=job.idjob) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Job #{{ job.idjob }}</h6>
+                            <small>{% if job.date_next_due %}{{ job.date_next_due.strftime('%Y-%m-%d') }}{% endif %}</small>
+                        </div>
+                        <p class="mb-1 text-muted">{{ job.info or 'No description' }}</p>
+                        {% if job.price %}
+                        <small class="text-success">£{{ "%.2f"|format(job.price) }}</small>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-primary w-100 mt-3" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Job
+                </button>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-briefcase" style="font-size: 3rem; color: #d1d5db;"></i>
+                    <p class="text-muted mt-3">No jobs assigned</p>
+                    <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                        <i class="bi bi-plus-circle me-2"></i>Add Job
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Job Modal -->
+<div class="modal fade" id="addJobModal" tabindex="-1" aria-labelledby="addJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addJobModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Job
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_job', customer_id=customer.idcustomer) }}">
+                <div class="modal-body">
+                    <h6 class="mb-3"><i class="bi bi-briefcase me-2"></i>Job Details</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="price" class="form-label">Price (£)</label>
+                            <input type="number" step="0.01" class="form-control" id="price" name="price">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="frequency" class="form-label">Frequency (weeks)</label>
+                            <input type="number" class="form-control" id="frequency" name="frequency" placeholder="e.g., 2 for every 2 weeks">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info" class="form-label">Job Information</label>
+                        <textarea class="form-control" id="info" name="info" rows="3" maxlength="100" placeholder="Job description or notes (max 100 characters)"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="zone_id" class="form-label">Zone ID</label>
+                            <input type="number" class="form-control" id="zone_id" name="zone_id">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_type_id" class="form-label">Payment Type ID</label>
+                            <input type="number" class="form-control" id="payment_type_id" name="payment_type_id">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-geo-alt me-2"></i>Address</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="house_number" class="form-label">House Number/Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="house_number" name="house_number" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="street" class="form-label">Street Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="street" name="street" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="postcode" class="form-label">Postcode <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="postcode" name="postcode" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Add Job
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

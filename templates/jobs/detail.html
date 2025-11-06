@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if job.address %}
+        {% if job.address.house_num_name and job.address.street_name %}
+            {{ job.address.house_num_name }} {{ job.address.street_name }} - Job Details
+        {% elif job.address.postcode %}
+            {{ job.address.postcode }} - Job Details
+        {% else %}
+            Job #{{ job.idjob }} - Job Details
+        {% endif %}
+    {% else %}
+        Job #{{ job.idjob }} - Job Details
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="mb-0">
+            <i class="bi bi-briefcase me-2"></i>
+            {% if job.address %}
+                {% if job.address.house_num_name and job.address.street_name %}
+                    {{ job.address.house_num_name }} {{ job.address.street_name }}
+                {% elif job.address.postcode %}
+                    {{ job.address.postcode }}
+                {% else %}
+                    Job #{{ job.idjob }}
+                {% endif %}
+            {% else %}
+                Job #{{ job.idjob }}
+            {% endif %}
+        </h1>
+        <p class="text-muted">Job Details</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('edit_job', id=job.idjob) }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-pencil me-2"></i>Edit Job
+        </a>
+        {% if job.customer %}
+        <a href="{{ url_for('customer_detail', id=job.customer_id) }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-person me-2"></i>View Customer
+        </a>
+        {% endif %}
+        <a href="{{ url_for('jobs_list') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Jobs
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Address</h5>
+            </div>
+            <div class="card-body">
+                {% if job.address %}
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>House Number/Name:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ job.address.house_num_name or '-' }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Street Name:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ job.address.street_name or '-' }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Postcode:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ job.address.postcode or '-' }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    No address assigned
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Job Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Customer:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if job.customer %}
+                            <a href="{{ url_for('customer_detail', id=job.customer_id) }}">
+                                {{ job.customer.forename or '' }} {{ job.customer.surname or '' }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Price:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if job.price %}
+                            <span class="text-success fw-bold">£{{ "%.2f"|format(job.price) }}</span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Job Information:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {{ job.info or '-' }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Frequency:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if job.frequency %}
+                            {% set weeks = (job.frequency / 7) | round(1) %}
+                            {% if weeks == (weeks | int) %}
+                                {{ weeks | int }} week{% if weeks != 1 %}s{% endif %}
+                            {% else %}
+                                {{ weeks }} weeks
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Date Last Done:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if job.dateLastDone %}
+                            {{ job.dateLastDone.strftime('%Y-%m-%d') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Next Due Date:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        {% if job.date_next_due %}
+                            <span class="badge bg-warning text-dark">{{ job.date_next_due.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Additional Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Job ID:</strong><br>
+                    {{ job.idjob }}
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <strong>Zone ID:</strong><br>
+                    {{ job.zone_id or '-' }}
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <strong>Payment Type ID:</strong><br>
+                    {{ job.payment_type_id or '-' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Customer - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="mb-0"><i class="bi bi-pencil me-2"></i>Edit Customer</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('edit_customer', id=customer.idcustomer) }}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="forename" class="form-label">Forename <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="forename" name="forename" 
+                                   value="{{ customer.forename or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="surname" class="form-label">Surname <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="surname" name="surname" 
+                                   value="{{ customer.surname or '' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ customer.email or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telephone" class="form-label">Telephone</label>
+                            <input type="tel" class="form-control" id="telephone" name="telephone" 
+                                   value="{{ customer.telephone or '' }}" 
+                                   pattern="[0-9]+" title="Phone number should contain only digits (no spaces)">
+                            <small class="text-muted">Numbers only, no spaces</small>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-file-earmark-text me-2"></i>Invoice Address</h5>
+                    <p class="text-muted small">Add a separate address for invoicing (different from job addresses)</p>
+                    
+                    {% if customer.address_id %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        {% if invoice_address %}
+                        <strong>Current Invoice Address:</strong> {{ invoice_address.house_num_name or '' }} {{ invoice_address.street_name or '' }}, {{ invoice_address.postcode or '' }}
+                        {% else %}
+                        Invoice address is set
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        No invoice address set
+                    </div>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#addInvoiceAddressModal">
+                        <i class="bi bi-plus-circle me-2"></i>{% if customer.address_id %}Change{% else %}Add{% endif %} Invoice Address
+                    </button>
+                  
+                    {% if customer.timestamp %}
+                    <div class="mb-3">
+                        <label class="form-label">Created</label>
+                        <input type="text" class="form-control" 
+                               value="{{ customer.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}" disabled>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('customer_detail', id=customer.idcustomer) }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>Update Customer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Invoice Address Modal -->
+<div class="modal fade" id="addInvoiceAddressModal" tabindex="-1" aria-labelledby="addInvoiceAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addInvoiceAddressModalLabel">
+                    <i class="bi bi-file-earmark-text me-2"></i>{% if customer.address_id %}Change{% else %}Add{% endif %} Invoice Address
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_invoice_address', customer_id=customer.idcustomer) }}">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="invoice_house_number" class="form-label">House Number/Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="invoice_house_number" name="house_number" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="invoice_street" class="form-label">Street Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="invoice_street" name="street" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="invoice_postcode" class="form-label">Postcode <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="invoice_postcode" name="postcode" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Save Invoice Address
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
