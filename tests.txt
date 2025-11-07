@@ -1,19 +1,19 @@
-Test customer creation with valid data
+* Test customer creation with valid data
 Create customer with all required fields
 Verify customer is saved to database
 Verify redirect to customer detail page
-Test customer creation with phone number validation
+* Test customer creation with phone number validation
 Reject phone numbers with spaces
 Reject phone numbers with non-numeric characters
 Accept valid numeric phone numbers
-Test customer update functionality
+* Test customer update functionality
 Update customer details
 Verify changes are persisted
 Test phone number validation on update
-Test customer deletion
+* Test customer deletion
 Delete customer and verify removal
 Test deletion of customer with associated jobs (cascade behavior)
-Test customer list display
+* Test customer list display
 Verify all customers are displayed
 Verify total count is correct
 Test customer search/filter functionality
@@ -21,11 +21,8 @@ Test customer detail page
 Display all customer information
 Display associated jobs
 Test "Add Job" functionality from customer detail
-Test invoice address management
-Add invoice address for customer
-Update existing invoice address
 Verify address reuse logic
-Job Management Tests
+* Job Management Tests
 Test job creation without customer
 Create job with address but no customer
 Verify job is saved correctly
