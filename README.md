@@ -21,7 +21,6 @@ A comprehensive Flask web application for managing window cleaning jobs, custome
 - **Admin Settings**: Manage zones and system configuration
 
 ### User Interface
-- **Dark Mode**: Modern dark theme with red accent colors
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **Bootstrap 5**: Modern UI components and styling
 - **Chart.js Integration**: Interactive charts and graphs for statistics
