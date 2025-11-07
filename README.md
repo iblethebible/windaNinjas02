@@ -1,4 +1,4 @@
-# Winda Ninjas - Job Management System
+# Winda Ninjas - Job Management System (BUILD ONE READY TO TEST EXAMPLES IN TESTS.TXT)
 
 A comprehensive Flask web application for managing window cleaning jobs, customers, zones, and worker tracking.
 <img width="1858" height="934" alt="Screenshot 2025-11-06 221344" src="https://github.com/user-attachments/assets/57159928-39b2-4a8d-87c9-3e9f9ee6f36a" />
