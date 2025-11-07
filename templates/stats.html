@@ -88,6 +88,26 @@
         </div>
     </div>
 </div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Payment Type Distribution by Zone</h5>
+            </div>
+            <div class="card-body">
+                {% if stats.zone_payment_distribution.zones %}
+                <canvas id="zonePaymentTypeChart" height="120"></canvas>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle" style="font-size: 3rem; color: #9ca3af;"></i>
+                    <p class="text-muted mt-3">Complete a job with a recorded payment to see distribution by zone.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -200,6 +220,65 @@
             }
         }
     });
+
+    // Payment Type Distribution by Zone (stacked bar chart)
+    const zonePaymentData = {{ stats.zone_payment_distribution|tojson }};
+    if (zonePaymentData && zonePaymentData.zones && zonePaymentData.zones.length > 0) {
+        const zonePaymentCtx = document.getElementById('zonePaymentTypeChart').getContext('2d');
+        const paymentColors = ['#4f46e5', '#10b981', '#f97316', '#ef4444', '#0ea5e9'];
+
+        const zonePaymentDatasets = zonePaymentData.datasets.map((dataset, index) => ({
+            label: dataset.label,
+            data: dataset.data,
+            backgroundColor: paymentColors[index % paymentColors.length],
+            borderRadius: 6,
+            stack: 'payment'
+        }));
+
+        new Chart(zonePaymentCtx, {
+            type: 'bar',
+            data: {
+                labels: zonePaymentData.zones,
+                datasets: zonePaymentDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y || 0}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Zone'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Completed Jobs Count'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     // Weekly Earnings Bar Chart (Theoretical vs Actual)
     const weeklyEarningsCtx = document.getElementById('weeklyEarningsChart').getContext('2d');

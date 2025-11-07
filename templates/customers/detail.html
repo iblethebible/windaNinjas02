@@ -137,6 +137,7 @@
             </div>
             <form method="POST" action="{{ url_for('add_job', customer_id=customer.idcustomer) }}">
                 <div class="modal-body">
+                    <input type="hidden" name="customer_id" value="{{ customer.idcustomer }}">
                     <h6 class="mb-3"><i class="bi bi-briefcase me-2"></i>Job Details</h6>
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -154,17 +155,13 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="zone_id" class="form-label">Zone</label>
-                            <select class="form-select" id="zone_id" name="zone_id">
-                                <option value="">No Zone</option>
+                            <label for="zone_id" class="form-label">Zone <span class="text-danger">*</span></label>
+                            <select class="form-select" id="zone_id" name="zone_id" required>
+                                <option value="">Select a zone</option>
                                 {% for zone in zones %}
                                 <option value="{{ zone.idzone }}">{{ zone.name }}</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="payment_type_id" class="form-label">Payment Type ID</label>
-                            <input type="number" class="form-control" id="payment_type_id" name="payment_type_id">
                         </div>
                     </div>
                     

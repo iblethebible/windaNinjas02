@@ -203,11 +203,6 @@
                         -
                     {% endif %}
                 </div>
-                <hr>
-                <div class="mb-3">
-                    <strong>Payment Type ID:</strong><br>
-                    {{ job.payment_type_id or '-' }}
-                </div>
             </div>
         </div>
     </div>
@@ -228,7 +223,7 @@
                             <tr>
                                 <th>Date Completed</th>
                                 <th>Payment Status</th>
-                                <th>Payment Type ID</th>
+                                <th>Payment Type</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,7 +243,7 @@
                                         <span class="badge bg-warning">Unpaid</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ history.payment_type_id or '-' }}</td>
+                                <td>{{ payment_type_map.get(history.payment_type_id) or '-' }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -288,9 +283,15 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="payment_type_id" class="form-label">Payment Type ID (optional)</label>
-                        <input type="number" class="form-control" id="payment_type_id" name="payment_type_id" 
-                               value="{{ job.payment_type_id or '' }}">
+                        <label for="payment_type_id" class="form-label">Payment Type</label>
+                        <select class="form-select" id="payment_type_id" name="payment_type_id" required>
+                            <option value="" disabled {% if not job.payment_type_id %}selected{% endif %}>Select payment type</option>
+                            {% for payment in payment_types %}
+                            <option value="{{ payment.id }}" {% if job.payment_type_id == payment.id %}selected{% endif %}>
+                                {{ payment.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-2"></i>
@@ -307,5 +308,39 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+    (function() {
+        const paymentSelect = document.getElementById('payment_type_id');
+        const paidRadios = document.querySelectorAll('input[name="paid"]');
+
+        if (!paymentSelect || paidRadios.length === 0) {
+            return;
+        }
+
+        function updatePaymentSelectState() {
+            const paidValue = document.querySelector('input[name="paid"]:checked')?.value;
+            if (paidValue === 'true') {
+                paymentSelect.disabled = false;
+                paymentSelect.required = true;
+            } else {
+                paymentSelect.disabled = true;
+                paymentSelect.required = false;
+                if (paymentSelect.options.length > 0) {
+                    paymentSelect.selectedIndex = 0;
+                }
+            }
+        }
+
+        paidRadios.forEach(radio => {
+            radio.addEventListener('change', updatePaymentSelectState);
+        });
+
+        updatePaymentSelectState();
+    })();
+</script>
 {% endblock %}
 

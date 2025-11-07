@@ -22,14 +22,19 @@
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="stat-card">
-            <div class="stat-label">Unpaid Earnings</div>
-            <div class="stat-number">£{{ "%.2f"|format(unpaid_earnings) }}</div>
-            <div class="mt-2">
-                <i class="bi bi-exclamation-triangle text-primary"></i>
-                <span class="text-muted ms-2">Outstanding</span>
+        <a href="{{ url_for('unpaid_jobs') }}" class="text-decoration-none text-dark">
+            <div class="stat-card h-100">
+                <div class="stat-label">Unpaid Earnings</div>
+                <div class="stat-number">£{{ "%.2f"|format(unpaid_earnings) }}</div>
+                <div class="mt-2">
+                    <i class="bi bi-exclamation-triangle text-primary"></i>
+                    <span class="text-muted ms-2">Outstanding</span>
+                </div>
+                <div class="mt-3 text-primary small">
+                    View outstanding jobs &raquo;
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-4 mb-3">
         <div class="stat-card">
@@ -82,7 +87,7 @@
                         <tbody>
                             {% for item in jobs_by_due %}
                             {% set job = item.job %}
-                            {% set days_overdue = item.days_overdue %}
+                            {% set days_until_due = item.days_until_due %}
                             <tr style="cursor: pointer;" data-href="{{ url_for('job_detail', id=job.idjob) }}" 
                                 data-zone="{% if job.zone_id %}{{ job.zone_id }}{% endif %}">
                                 <td>
@@ -134,14 +139,14 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if days_overdue == "No due date set" %}
-                                        <span class="badge bg-warning">Due</span>
-                                    {% elif days_overdue > 0 %}
-                                        <span class="badge bg-danger">Overdue ({{ days_overdue }}d)</span>
-                                    {% elif days_overdue == 0 %}
+                                    {% if days_until_due is none %}
+                                        <span class="badge bg-secondary">No Date Set</span>
+                                    {% elif days_until_due < 0 %}
+                                        <span class="badge bg-danger">Overdue ({{ -days_until_due }}d)</span>
+                                    {% elif days_until_due == 0 %}
                                         <span class="badge bg-warning">Due Today</span>
                                     {% else %}
-                                        <span class="badge bg-info">Due in {{ -days_overdue }}d</span>
+                                        <span class="badge bg-info">Due in {{ days_until_due }}d</span>
                                     {% endif %}
                                 </td>
                                 <td onclick="event.stopPropagation();">

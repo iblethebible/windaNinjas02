@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,6 +16,22 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL',
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+PAYMENT_TYPES = [
+    {'id': 1, 'label': 'Cash'},
+    {'id': 2, 'label': 'Card'},
+    {'id': 3, 'label': 'Bank Transfer'}
+]
+PAYMENT_TYPE_MAP = {item['id']: item['label'] for item in PAYMENT_TYPES}
+
+
+def parse_payment_type_id(raw_value):
+    """Convert raw form value into a valid payment type id or None."""
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return value if value in PAYMENT_TYPE_MAP else None
 
 # Customer Model
 class Customer(db.Model):
@@ -133,6 +151,23 @@ class JobHistory(db.Model):
             'payment_type_id': self.payment_type_id
         }
 
+
+def build_due_condition(reference_time):
+    """Return SQLAlchemy filter condition for jobs that should appear as due."""
+    return or_(
+        Job.date_next_due <= reference_time,
+        and_(Job.date_next_due.is_(None), Job.dateLastDone.is_(None))
+    )
+
+
+def build_schedule_condition():
+    """Return filter condition for jobs that should appear in the schedule view."""
+    return or_(
+        Job.frequency.isnot(None),
+        Job.dateLastDone.is_(None)
+    )
+
+
 # Routes
 @app.route('/')
 def dashboard():
@@ -143,25 +178,23 @@ def dashboard():
         # Count due/overdue jobs
         today = datetime.now()
         due_jobs_count = Job.query.filter(
-            (Job.date_next_due <= today) | (Job.date_next_due.is_(None))
+            build_due_condition(today)
         ).count()
         
-        # Calculate unpaid earnings (theoretical - actual)
-        theoretical_earnings = db.session.query(db.func.sum(Job.price)).scalar() or 0
-        
-        # Actual earnings (from paid job_history entries)
-        actual_earnings = 0
-        if JobHistory.query.count() > 0:
-            actual_earnings = db.session.query(
-                db.func.sum(Job.price)
-            ).join(
-                JobHistory, Job.idjob == JobHistory.job_id
-            ).filter(JobHistory.paid == True).scalar() or 0
-        
-        unpaid_earnings = float(theoretical_earnings) - float(actual_earnings)
+        # Calculate unpaid earnings based on completed but unpaid job history entries
+        unpaid_earnings = db.session.query(
+            db.func.sum(db.func.coalesce(Job.price, 0))
+        ).join(
+            JobHistory, Job.idjob == JobHistory.job_id
+        ).filter(
+            JobHistory.paid == False
+        ).scalar() or 0
+        unpaid_earnings = float(unpaid_earnings)
         
         # Get jobs ordered by due date (jobs with no date first, then by date)
-        jobs_by_due = Job.query.order_by(
+        jobs_by_due = Job.query.filter(
+            build_schedule_condition()
+        ).order_by(
             db.case(
                 (Job.date_next_due.is_(None), 0),  # Put NULL dates first (0 comes before 1)
                 else_=1
@@ -169,15 +202,15 @@ def dashboard():
             Job.date_next_due.asc()
         ).all()
         
-        # Calculate days overdue for each job and get unique zones
+        # Calculate days until due for each job and get unique zones
         jobs_with_overdue = []
         zones_dict = {}
+        today_date = today.date()
         for job in jobs_by_due:
-            days_overdue = None
             if job.date_next_due:
-                days_overdue = (today - job.date_next_due).days
+                days_until_due = (job.date_next_due.date() - today_date).days
             else:
-                days_overdue = "No due date set"
+                days_until_due = None
             
             if job.zone_id:
                 # Get zone object if not already fetched
@@ -187,7 +220,7 @@ def dashboard():
             
             jobs_with_overdue.append({
                 'job': job,
-                'days_overdue': days_overdue
+                'days_until_due': days_until_due
             })
         
         # Get all zones for the filter dropdown
@@ -358,7 +391,12 @@ def customer_detail(id):
         jobs = Job.query.filter_by(customer_id=id).order_by(Job.idjob.desc()).all()
         # Get zones for the add job modal
         zones = Zone.query.order_by(Zone.name).all()
-        return render_template('customers/detail.html', customer=customer, jobs=jobs, zones=zones)
+        return render_template(
+            'customers/detail.html',
+            customer=customer,
+            jobs=jobs,
+            zones=zones
+        )
     except Exception as e:
         flash(f'Error loading customer: {str(e)}', 'error')
         return redirect(url_for('customers'))
@@ -433,15 +471,27 @@ def add_job():
                     frequency_weeks = None
             
             frequency_days = frequency_weeks * 7 if frequency_weeks else None
+
+            zone_id_raw = request.form.get('zone_id')
+            if not zone_id_raw:
+                flash('Please select a zone for the job.', 'error')
+                return redirect(url_for('add_job'))
+            try:
+                zone_id = int(zone_id_raw)
+                zone = Zone.query.get(zone_id)
+                if not zone:
+                    raise ValueError('Invalid zone')
+            except (ValueError, TypeError):
+                flash('Invalid zone selected.', 'error')
+                return redirect(url_for('add_job'))
             
             job = Job(
                 customer_id=customer_id,
                 price=price,
                 frequency=frequency_days,  # Store as days in database
                 address_id=address_id,
-                zone_id=int(request.form.get('zone_id')) if request.form.get('zone_id') and request.form.get('zone_id') != '' else None,
-                info=request.form.get('info'),
-                payment_type_id=int(request.form.get('payment_type_id')) if request.form.get('payment_type_id') else None
+                zone_id=zone_id,
+                info=request.form.get('info')
             )
             db.session.add(job)
             db.session.commit()
@@ -507,15 +557,27 @@ def add_job_for_customer(customer_id):
                 frequency_weeks = None
         
         frequency_days = frequency_weeks * 7 if frequency_weeks else None
-        
+
+        zone_id_raw = request.form.get('zone_id')
+        if not zone_id_raw:
+            flash('Please select a zone for the job.', 'error')
+            return redirect(url_for('customer_detail', id=customer_id))
+        try:
+            zone_id = int(zone_id_raw)
+            zone = Zone.query.get(zone_id)
+            if not zone:
+                raise ValueError('Invalid zone')
+        except (ValueError, TypeError):
+            flash('Invalid zone selected.', 'error')
+            return redirect(url_for('customer_detail', id=customer_id))
+
         job = Job(
             customer_id=customer_id,
             price=price,
             frequency=frequency_days,  # Store as days in database
             address_id=address_id,
-                zone_id=int(request.form.get('zone_id')) if request.form.get('zone_id') and request.form.get('zone_id') != '' else None,
-            info=request.form.get('info'),
-            payment_type_id=int(request.form.get('payment_type_id')) if request.form.get('payment_type_id') else None
+            zone_id=zone_id,
+            info=request.form.get('info')
         )
         db.session.add(job)
         db.session.commit()
@@ -531,23 +593,35 @@ def jobs_list():
     """Display all jobs"""
     try:
         jobs = Job.query.order_by(Job.idjob.desc()).all()
-        return render_template('jobs/list.html', jobs=jobs)
+        zones = Zone.query.order_by(Zone.name).all()
+        zones_by_id = {zone.idzone: zone for zone in zones}
+        return render_template('jobs/list.html', jobs=jobs, zones_by_id=zones_by_id)
     except Exception as e:
         flash(f'Database error: {str(e)}', 'error')
-        return render_template('jobs/list.html', jobs=[])
+        return render_template('jobs/list.html', jobs=[], zones_by_id={})
 
 @app.route('/jobs/<int:id>')
 def job_detail(id):
     """Display job detail view"""
     try:
-        job = Job.query.get_or_404(id)
+        job = Job.query.options(
+            joinedload(Job.customer),
+            joinedload(Job.address)
+        ).filter_by(idjob=id).first_or_404()
         # Get job history (completions)
         job_history = JobHistory.query.filter_by(job_id=job.idjob).order_by(JobHistory.timestamp.desc()).all()
         # Get zone if zone_id is set
         zone = None
         if job.zone_id:
             zone = Zone.query.get(job.zone_id)
-        return render_template('jobs/detail.html', job=job, job_history=job_history, zone=zone)
+        return render_template(
+            'jobs/detail.html',
+            job=job,
+            job_history=job_history,
+            zone=zone,
+            payment_types=PAYMENT_TYPES,
+            payment_type_map=PAYMENT_TYPE_MAP
+        )
     except Exception as e:
         flash(f'Error loading job: {str(e)}', 'error')
         return redirect(url_for('jobs_list'))
@@ -603,10 +677,12 @@ def edit_job(id):
             
             job.price = price
             job.frequency = frequency_days
+            if job.frequency is None:
+                job.date_next_due = None
             zone_id = request.form.get('zone_id')
             job.zone_id = int(zone_id) if zone_id and zone_id != '' else None
             job.info = request.form.get('info')
-            job.payment_type_id = int(request.form.get('payment_type_id')) if request.form.get('payment_type_id') else None
+            job.payment_type_id = parse_payment_type_id(request.form.get('payment_type_id'))
             
             db.session.commit()
             flash('Job updated successfully!', 'success')
@@ -640,22 +716,29 @@ def complete_job(id):
     try:
         today = datetime.now().date()
         paid = request.form.get('paid') == 'true'
-        payment_type_id = request.form.get('payment_type_id') or None
+        payment_type_value = parse_payment_type_id(request.form.get('payment_type_id'))
+
+        if paid and payment_type_value is None:
+            flash('Please select how the job was paid.', 'error')
+            return redirect(url_for('job_detail', id=job.idjob))
+        if not paid:
+            payment_type_value = None
         
         # Update job dates
         job.dateLastDone = today
         
-        # Calculate next due date (frequency is in days, multiply by 7 to get weeks)
+        # Calculate next due date (frequency is stored in days)
         if job.frequency:
-            days_to_add = job.frequency * 7
-            job.date_next_due = datetime.now() + timedelta(days=days_to_add)
+            job.date_next_due = datetime.now() + timedelta(days=job.frequency)
+        else:
+            job.date_next_due = None
         
         # Create job history entry
         job_history = JobHistory(
             job_id=job.idjob,
             timestamp=datetime.now(),
             paid=paid,
-            payment_type_id=int(payment_type_id) if payment_type_id else None
+            payment_type_id=payment_type_value
         )
         
         db.session.add(job_history)
@@ -663,39 +746,149 @@ def complete_job(id):
         
         payment_status = "Paid" if paid else "Unpaid"
         flash(f'Job marked as complete! Payment: {payment_status}', 'success')
-        return redirect(url_for('job_detail', id=job.idjob))
+        return redirect(url_for('jobs_due'))
     except Exception as e:
         db.session.rollback()
         flash(f'Error completing job: {str(e)}', 'error')
         return redirect(url_for('job_detail', id=job.idjob))
+
+
+@app.route('/jobs/completed')
+def jobs_completed():
+    """Display all completed job entries with filtering and sorting options."""
+    try:
+        customer_id = request.args.get('customer_id') or None
+        zone_id = request.args.get('zone_id') or None
+        paid_filter = request.args.get('paid', 'all')
+        payment_type_raw = request.args.get('payment_type_id') or None
+        payment_type_id = parse_payment_type_id(payment_type_raw) if payment_type_raw else None
+        sort_param = request.args.get('sort', 'date_desc')
+        search_term = request.args.get('search', '').strip()
+
+        query = JobHistory.query.options(
+            joinedload(JobHistory.job).joinedload(Job.customer),
+            joinedload(JobHistory.job).joinedload(Job.address)
+        ).join(Job, JobHistory.job).outerjoin(Customer, Job.customer).outerjoin(Zone, Job.zone_id == Zone.idzone).outerjoin(Address, Job.address)
+
+        if customer_id:
+            try:
+                customer_id_int = int(customer_id)
+                query = query.filter(Job.customer_id == customer_id_int)
+            except ValueError:
+                pass
+
+        if zone_id:
+            try:
+                zone_id_int = int(zone_id)
+                query = query.filter(Job.zone_id == zone_id_int)
+            except ValueError:
+                pass
+
+        if paid_filter == 'paid':
+            query = query.filter(JobHistory.paid.is_(True))
+        elif paid_filter == 'unpaid':
+            query = query.filter(JobHistory.paid.is_(False))
+
+        if payment_type_id is not None:
+            query = query.filter(JobHistory.payment_type_id == payment_type_id)
+
+        if search_term:
+            like_term = f"%{search_term}%"
+            query = query.filter(
+                or_(
+                    Job.info.ilike(like_term),
+                    Address.house_num_name.ilike(like_term),
+                    Address.street_name.ilike(like_term),
+                    Address.postcode.ilike(like_term)
+                )
+            )
+
+        if sort_param == 'date_asc':
+            query = query.order_by(JobHistory.timestamp.asc())
+        elif sort_param == 'customer_asc':
+            query = query.order_by(Customer.surname.asc(), Customer.forename.asc(), JobHistory.timestamp.desc())
+        elif sort_param == 'customer_desc':
+            query = query.order_by(Customer.surname.desc(), Customer.forename.desc(), JobHistory.timestamp.desc())
+        elif sort_param == 'zone_asc':
+            query = query.order_by(Zone.name.asc(), JobHistory.timestamp.desc())
+        elif sort_param == 'zone_desc':
+            query = query.order_by(Zone.name.desc(), JobHistory.timestamp.desc())
+        elif sort_param == 'paid_status':
+            query = query.order_by(JobHistory.paid.desc(), JobHistory.timestamp.desc())
+        else:
+            query = query.order_by(JobHistory.timestamp.desc())
+
+        histories = query.all()
+        customers = Customer.query.order_by(Customer.surname, Customer.forename).all()
+        zones = Zone.query.order_by(Zone.name).all()
+
+        filters = {
+            'customer_id': customer_id or '',
+            'zone_id': zone_id or '',
+            'paid': paid_filter,
+            'payment_type_id': payment_type_raw if payment_type_id is not None else '',
+            'sort': sort_param,
+            'search': search_term
+        }
+
+        return render_template(
+            'jobs/completed.html',
+            histories=histories,
+            customers=customers,
+            zones=zones,
+            payment_types=PAYMENT_TYPES,
+            payment_type_map=PAYMENT_TYPE_MAP,
+            filters=filters
+        )
+    except Exception as e:
+        flash(f'Error loading completed jobs: {str(e)}', 'error')
+        return render_template(
+            'jobs/completed.html',
+            histories=[],
+            customers=[],
+            zones=[],
+            payment_types=PAYMENT_TYPES,
+            payment_type_map=PAYMENT_TYPE_MAP,
+            filters={
+                'customer_id': '',
+                'zone_id': '',
+                'paid': 'all',
+                'payment_type_id': '',
+                'sort': 'date_desc',
+                'search': ''
+            }
+        )
+
 
 @app.route('/jobs/due')
 def jobs_due():
     """Display all jobs that are due or overdue"""
     try:
         today = datetime.now()
+        zones = Zone.query.order_by(Zone.name).all()
+        zones_by_id = {zone.idzone: zone for zone in zones}
         due_jobs = Job.query.filter(
-            (Job.date_next_due <= today) | (Job.date_next_due.is_(None))
+            build_schedule_condition()
         ).order_by(Job.date_next_due.asc()).all()
         
-        # Calculate days overdue for each job
+        # Calculate days until due for each job
         jobs_with_overdue = []
+        today_date = today.date()
         for job in due_jobs:
-            days_overdue = None
             if job.date_next_due:
-                days_overdue = (today - job.date_next_due).days
+                days_until_due = (job.date_next_due.date() - today_date).days
             else:
-                days_overdue = "No due date set"
+                days_until_due = None
             
             jobs_with_overdue.append({
                 'job': job,
-                'days_overdue': days_overdue
+                'days_until_due': days_until_due
             })
         
-        return render_template('jobs/due.html', jobs=jobs_with_overdue)
+        return render_template('jobs/due.html', jobs=jobs_with_overdue, zones_by_id=zones_by_id)
     except Exception as e:
         flash(f'Error loading due jobs: {str(e)}', 'error')
-        return render_template('jobs/due.html', jobs=[])
+        return render_template('jobs/due.html', jobs=[], zones_by_id={})
 
 @app.route('/stats')
 def stats():
@@ -771,6 +964,44 @@ def stats():
                     'zone_name': zone.name,
                     'job_count': job_count
                 })
+
+        # Payment type distribution by zone (based on completed jobs)
+        base_payment_counts = {pt['id']: 0 for pt in PAYMENT_TYPES}
+        zone_payment_counts = {
+            zone.name: base_payment_counts.copy()
+            for zone in zones
+        }
+
+        payment_query = db.session.query(
+            Zone.name.label('zone_name'),
+            JobHistory.payment_type_id
+        ).join(Job, JobHistory.job_id == Job.idjob)\
+         .join(Zone, Job.zone_id == Zone.idzone, isouter=True)\
+         .filter(JobHistory.payment_type_id.isnot(None))
+
+        for result in payment_query:
+            zone_name = result.zone_name or 'No Zone'
+            if zone_name not in zone_payment_counts:
+                zone_payment_counts[zone_name] = base_payment_counts.copy()
+            if result.payment_type_id in PAYMENT_TYPE_MAP:
+                zone_payment_counts[zone_name][result.payment_type_id] += 1
+
+        zone_payment_labels = sorted(
+            [name for name in zone_payment_counts.keys() if name != 'No Zone']
+        )
+        if 'No Zone' in zone_payment_counts:
+            zone_payment_labels.append('No Zone')
+
+        zone_payment_datasets = []
+        for payment in PAYMENT_TYPES:
+            dataset_values = [
+                zone_payment_counts[zone_name][payment['id']]
+                for zone_name in zone_payment_labels
+            ]
+            zone_payment_datasets.append({
+                'label': payment['label'],
+                'data': dataset_values
+            })
         
         # Weekly earnings (theoretical vs actual collected)
         # Get last 8 weeks of data
@@ -820,6 +1051,10 @@ def stats():
             'actual_earnings': float(actual_earnings),
             'zone_stats': zone_stats,
             'zone_distribution': zone_distribution,
+            'zone_payment_distribution': {
+                'zones': zone_payment_labels,
+                'datasets': zone_payment_datasets
+            },
             'weekly_earnings': weekly_earnings
         }
         
@@ -837,6 +1072,10 @@ def stats():
             'actual_earnings': 0,
             'zone_stats': [],
             'zone_distribution': [],
+            'zone_payment_distribution': {
+                'zones': [],
+                'datasets': []
+            },
             'weekly_earnings': []
         })
 

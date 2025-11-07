@@ -88,6 +88,12 @@ CREATE TABLE zone (
     name VARCHAR(100) NOT NULL
 );
 
+-- Payment type lookup
+CREATE TABLE payment_type (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
+
 -- Jobs table
 CREATE TABLE jobs (
     idjob INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Completed Jobs - Customer Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="mb-0"><i class="bi bi-check2-circle me-2"></i>Completed Jobs</h1>
+        <p class="text-muted">Review every completed visit, filter by customer, zone, payment status, and payment method.</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('jobs_due') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-calendar-check me-1"></i>View Schedule
+        </a>
+        <a href="{{ url_for('jobs_list') }}" class="btn btn-secondary">
+            <i class="bi bi-briefcase me-1"></i>All Jobs
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
+    </div>
+    <div class="card-body">
+        <form class="row g-3 align-items-end" method="GET" action="{{ url_for('jobs_completed') }}">
+            <div class="col-md-3">
+                <label for="customer_id" class="form-label">Customer</label>
+                <select class="form-select" id="customer_id" name="customer_id">
+                    <option value="">All customers</option>
+                    {% for customer in customers %}
+                    {% set full_name = ((customer.forename or '') + ' ' + (customer.surname or '')).strip() %}
+                    <option value="{{ customer.idcustomer }}" {% if filters.customer_id|int == customer.idcustomer %}selected{% endif %}>
+                        {{ full_name if full_name else 'Customer #' ~ customer.idcustomer }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="zone_id" class="form-label">Zone</label>
+                <select class="form-select" id="zone_id" name="zone_id">
+                    <option value="">All zones</option>
+                    {% for zone in zones %}
+                    <option value="{{ zone.idzone }}" {% if filters.zone_id|int == zone.idzone %}selected{% endif %}>
+                        {{ zone.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="paid" class="form-label">Payment Status</label>
+                <select class="form-select" id="paid" name="paid">
+                    <option value="all" {% if filters.paid == 'all' %}selected{% endif %}>All</option>
+                    <option value="paid" {% if filters.paid == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="unpaid" {% if filters.paid == 'unpaid' %}selected{% endif %}>Unpaid</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="payment_type_id" class="form-label">Payment Type</label>
+                <select class="form-select" id="payment_type_id" name="payment_type_id">
+                    <option value="">Any</option>
+                    {% for payment in payment_types %}
+                    <option value="{{ payment.id }}" {% if filters.payment_type_id|int == payment.id %}selected{% endif %}>
+                        {{ payment.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="sort" class="form-label">Sort By</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Newest first</option>
+                    <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Oldest first</option>
+                    <option value="customer_asc" {% if filters.sort == 'customer_asc' %}selected{% endif %}>Customer (A-Z)</option>
+                    <option value="customer_desc" {% if filters.sort == 'customer_desc' %}selected{% endif %}>Customer (Z-A)</option>
+                    <option value="zone_asc" {% if filters.sort == 'zone_asc' %}selected{% endif %}>Zone (A-Z)</option>
+                    <option value="zone_desc" {% if filters.sort == 'zone_desc' %}selected{% endif %}>Zone (Z-A)</option>
+                    <option value="paid_status" {% if filters.sort == 'paid_status' %}selected{% endif %}>Payment status</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search Address / Notes</label>
+                <input type="text" class="form-control" id="search" name="search" placeholder="House, street, postcode, notes..." value="{{ filters.search }}">
+            </div>
+            <div class="col-md-8 text-end">
+                <a href="{{ url_for('jobs_completed') }}" class="btn btn-light me-2">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-sliders me-1"></i>Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-list-check me-2"></i>Completed Jobs ({{ histories|length }})
+            </h5>
+            <span class="text-muted small">
+                Showing results matching your filters
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if histories %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Completed</th>
+                        <th>Job</th>
+                        <th>Customer</th>
+                        <th>Zone</th>
+                        <th>Price</th>
+                        <th>Paid</th>
+                        <th>Payment Type</th>
+                        <th>Notes</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in histories %}
+                    {% set job = history.job %}
+                    <tr>
+                        <td>
+                            {% if history.timestamp %}
+                                {{ history.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job %}
+                                {% if job.address %}
+                                    {% if job.address.house_num_name and job.address.street_name %}
+                                        {{ job.address.house_num_name }} {{ job.address.street_name }}
+                                    {% elif job.address.postcode %}
+                                        {{ job.address.postcode }}
+                                    {% else %}
+                                        Job #{{ job.idjob }}
+                                    {% endif %}
+                                {% else %}
+                                    Job #{{ job.idjob }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Job deleted</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job and job.customer %}
+                                <a href="{{ url_for('customer_detail', id=job.customer.idcustomer) }}">
+                                    {{ (job.customer.forename or '') ~ ' ' ~ (job.customer.surname or '') }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No customer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job and job.zone_id %}
+                                {% set zone = zones|selectattr('idzone', 'equalto', job.zone_id)|first %}
+                                {{ zone.name if zone else 'Zone #' ~ job.zone_id }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job and job.price %}
+                                <span class="text-success fw-bold">£{{ "%.2f"|format(job.price) }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if history.paid %}
+                                <span class="badge bg-success">Paid</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ payment_type_map.get(history.payment_type_id) or '-' }}
+                        </td>
+                        <td>
+                            {% if job and job.info %}
+                                {{ job.info }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if job %}
+                            <a href="{{ url_for('job_detail', id=job.idjob) }}" class="btn btn-sm btn-outline-primary me-1" title="View job">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% endif %}
+                            {% if not history.paid %}
+                            <form method="POST" action="{{ url_for('mark_job_paid', history_id=history.idjob_history) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success" title="Mark as paid">
+                                    <i class="bi bi-cash-coin"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-emoji-smile" style="font-size: 3rem; color: #10b981;"></i>
+            <p class="text-muted mt-3">No completed jobs match your filters yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

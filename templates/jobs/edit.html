@@ -32,20 +32,15 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="zone_id" class="form-label">Zone</label>
-                            <select class="form-select" id="zone_id" name="zone_id">
-                                <option value="">No Zone</option>
+                            <label for="zone_id" class="form-label">Zone <span class="text-danger">*</span></label>
+                            <select class="form-select" id="zone_id" name="zone_id" required>
+                                <option value="">Select a zone</option>
                                 {% for zone in zones %}
                                 <option value="{{ zone.idzone }}" {% if job.zone_id == zone.idzone %}selected{% endif %}>
                                     {{ zone.name }}
                                 </option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="payment_type_id" class="form-label">Payment Type ID</label>
-                            <input type="number" class="form-control" id="payment_type_id" name="payment_type_id" 
-                                   value="{{ job.payment_type_id if job.payment_type_id else '' }}">
                         </div>
                     </div>
                     

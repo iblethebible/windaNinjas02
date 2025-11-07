@@ -9,8 +9,8 @@
         <p class="text-muted">Jobs that are due or overdue</p>
     </div>
     <div class="col-md-6 text-end">
-        <a href="{{ url_for('jobs_list') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to All Jobs
+        <a href="{{ url_for('jobs_list') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-briefcase me-2"></i>All Jobs
         </a>
     </div>
 </div>
@@ -34,17 +34,17 @@
                     <tr>
                         <th>Job</th>
                         <th>Customer</th>
+                        <th>Zone</th>
                         <th>Price</th>
                         <th>Status</th>
-                        <th>Days Overdue</th>
-                        <th>Next Due Date</th>
+                        <th>Days Until Due</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in jobs %}
                     {% set job = item.job %}
-                    {% set days_overdue = item.days_overdue %}
+                    {% set days_until_due = item.days_until_due %}
                     <tr style="cursor: pointer;" data-href="{{ url_for('job_detail', id=job.idjob) }}">
                         <td>
                             {% if job.address %}
@@ -69,6 +69,14 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if job.zone_id %}
+                                {% set zone = zones_by_id.get(job.zone_id) %}
+                                {{ zone.name if zone else 'Zone #' ~ job.zone_id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if job.price %}
                                 <span class="text-success fw-bold">£{{ "%.2f"|format(job.price) }}</span>
                             {% else %}
@@ -76,32 +84,25 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if days_overdue == "No due date set" %}
+                            {% if days_until_due is none %}
                                 <span class="badge bg-secondary">No Date Set</span>
-                            {% elif days_overdue > 0 %}
+                            {% elif days_until_due < 0 %}
                                 <span class="badge bg-danger">Overdue</span>
-                            {% elif days_overdue == 0 %}
+                            {% elif days_until_due == 0 %}
                                 <span class="badge bg-warning">Due Today</span>
                             {% else %}
-                                <span class="badge bg-info">Due Soon</span>
+                                <span class="badge bg-info">Due in {{ days_until_due }} days</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if days_overdue == "No due date set" %}
+                            {% if days_until_due is none %}
                                 <span class="text-muted">-</span>
-                            {% elif days_overdue > 0 %}
-                                <span class="text-danger fw-bold">{{ days_overdue }} days</span>
-                            {% elif days_overdue == 0 %}
-                                <span class="text-warning fw-bold">Today</span>
+                            {% elif days_until_due < 0 %}
+                                <span class="text-danger fw-bold">{{ -days_until_due }} days overdue</span>
+                            {% elif days_until_due == 0 %}
+                                <span class="text-warning fw-bold">Due today</span>
                             {% else %}
-                                <span class="text-info">{{ -days_overdue }} days</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if job.date_next_due %}
-                                {{ job.date_next_due.strftime('%Y-%m-%d') }}
-                            {% else %}
-                                <span class="text-muted">Not set</span>
+                                <span class="text-info">{{ days_until_due }} days</span>
                             {% endif %}
                         </td>
                         <td onclick="event.stopPropagation();">

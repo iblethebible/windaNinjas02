@@ -33,6 +33,7 @@
                     <tr>
                         <th>Job</th>
                         <th>Customer</th>
+                        <th>Zone</th>
                         <th>Price</th>
                         <th>Frequency</th>
                         <th>Info</th>
@@ -60,6 +61,14 @@
                                 <a href="{{ url_for('customer_detail', id=job.customer_id) }}" onclick="event.stopPropagation();">
                                     {{ job.customer.forename or '' }} {{ job.customer.surname or '' }}
                                 </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job.zone_id %}
+                                {% set zone = zones_by_id.get(job.zone_id) %}
+                                {{ zone.name if zone else 'Zone #' ~ job.zone_id }}
                             {% else %}
                                 -
                             {% endif %}
